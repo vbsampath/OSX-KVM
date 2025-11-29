@@ -58,12 +58,16 @@ args=(
   # -device ide-hd,bus=sata.3,drive=InstallMedia
   # -drive id=InstallMedia,if=none,file="$REPO_PATH/BaseSystem.img",format=raw
   -drive id=MacHDD,if=none,file="$HOME/QemuVM/SequoiaHDD.img",format=qcow2
-  -device ide-hd,bus=sata.1,drive=MacHDD
+  -device ide-hd,bus=sata.2,drive=MacHDD
   # -netdev tap,id=net0,ifname=tap0,script=no,downscript=no -device virtio-net-pci,netdev=net0,id=net0,mac=52:54:00:c9:18:27
-  -netdev user,id=net0,hostfwd=tcp::2222-:22 -device virtio-net-pci,netdev=net0,id=net0,mac=52:54:00:c9:18:27
+  # Connects to host, internet; Working with 10.0.2.15 ip
+  # -netdev user,id=net0,hostfwd=tcp::2222-:22 -device virtio-net-pci,netdev=net0,id=net0,mac=52:54:00:c9:18:27 
+  # Connects to host, lan, internet; Working with 192.168.122.155 ip
+  # You might need to give permissions to qemu-bridge-helper as chmod u+s qemu-bridge-helper
+  -netdev bridge,id=net0,br=virbr0,"helper=/usr/lib/qemu/qemu-bridge-helper" -device virtio-net-pci,netdev=net0,id=net0,mac=00:16:CB:00:11:34
   # -netdev user,id=net0 -device vmxnet3,netdev=net0,id=net0,mac=52:54:00:c9:18:27  # Note: Use this line for High Sierra
-  -monitor stdio
   -device vmware-svga
+  -monitor stdio
   # -spice port=5900,addr=127.0.0.1,disable-ticketing=on
   -rtc base=localtime,clock=host
 )
