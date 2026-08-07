@@ -72,4 +72,52 @@ args=(
   -rtc base=localtime,clock=host
 )
 
+set -e
+
+# -----------------------------------------------------------------------------
+# Prepare libvirt bridge
+# -----------------------------------------------------------------------------
+
+QEMU_HELPER="/usr/lib/qemu/qemu-bridge-helper"
+
+# Fix bridge helper permissions if required
+if [ ! -u "$QEMU_HELPER" ]; then
+    echo "Setting qemu-bridge-helper permissions..."
+    sudo chmod u+s "$QEMU_HELPER"
+fi
+
+# Start libvirt default network if needed
+if ! virsh net-info default 2>/dev/null | grep -q "Active:.*yes"; then
+    echo "Starting libvirt default network..."
+    sudo virsh net-start default >/dev/null
+fi
+
+# Wait until virbr0 exists
+for i in {1..10}; do
+    if ip link show virbr0 >/dev/null 2>&1; then
+        break
+    fi
+    sleep 0.5
+done
+
+if ! ip link show virbr0 >/dev/null 2>&1; then
+    echo "ERROR: virbr0 was not created."
+    exit 1
+fi
+
+# Enable Avahi daemon if not running (for Bonjour support)
+if ! systemctl is-active --quiet avahi-daemon; then
+    sudo systemctl start avahi-daemon
+fi
+
+# -----------------------------------------------------------------------------
+# Cleanup function to stop libvirt network on exit
+# -----------------------------------------------------------------------------
+cleanup() {
+    echo "Stopping libvirt network..."
+    sudo virsh net-destroy default >/dev/null 2>&1 || true
+}
+
+trap cleanup EXIT
+
 qemu-system-x86_64 "${args[@]}"
